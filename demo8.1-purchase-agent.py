@@ -138,11 +138,12 @@ def notify_employee(state: ProcurementState) -> dict:
     """Step 6: Use LLM to draft and send a notification to the employee."""
     print("\n[Step 6] Notifying employee...")
 
-    if state["po_number"] == "REJECTED":
+    if "reject" in state["approval_status"].lower():
         prompt = (
             f"Write a brief, professional notification (2-3 sentences) to an employee "
             f"that their purchase request for 50 laptops was rejected by the manager. "
             f"Be empathetic but concise."
+            f"Approval status: {state["approval_status"]}"
         )
     else:
         prompt = (
@@ -163,6 +164,12 @@ def notify_employee(state: ProcurementState) -> dict:
 def route_after_comparison(state: ProcurementState) -> str:
     if state["best_quote"]["total"] > 10000:
         return "request_approval"
+    else:
+        return "submit_purchase_order"
+    
+def route_after_approval_or_rejection(state: ProcurementState) -> str:
+    if "reject" in state["approval_status"].lower():
+        return "notify_employee"
     else:
         return "submit_purchase_order"
 
@@ -186,7 +193,7 @@ builder.add_edge(START, "lookup_vendors")
 builder.add_edge("lookup_vendors", "fetch_pricing")
 builder.add_edge("fetch_pricing", "compare_quotes")
 builder.add_conditional_edges("compare_quotes", route_after_comparison)
-builder.add_edge("request_approval", "submit_purchase_order")
+builder.add_conditional_edges("request_approval", route_after_approval_or_rejection)
 builder.add_edge("submit_purchase_order", "notify_employee")
 builder.add_edge("notify_employee", END)
 
