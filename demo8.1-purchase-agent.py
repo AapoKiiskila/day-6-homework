@@ -160,6 +160,13 @@ def notify_employee(state: ProcurementState) -> dict:
     return {"notification": notification}
 
 
+def route_after_comparison(state: ProcurementState) -> str:
+    if state["best_quote"]["total"] > 10000:
+        return "request_approval"
+    else:
+        return "submit_purchase_order"
+
+
 # ─── Build the graph ─────────────────────────────────────────────────────────
 #
 #   START → lookup_vendors → fetch_pricing → compare_quotes
@@ -178,7 +185,7 @@ builder.add_node("notify_employee", notify_employee)
 builder.add_edge(START, "lookup_vendors")
 builder.add_edge("lookup_vendors", "fetch_pricing")
 builder.add_edge("fetch_pricing", "compare_quotes")
-builder.add_edge("compare_quotes", "request_approval")
+builder.add_conditional_edges("compare_quotes", route_after_comparison)
 builder.add_edge("request_approval", "submit_purchase_order")
 builder.add_edge("submit_purchase_order", "notify_employee")
 builder.add_edge("notify_employee", END)
